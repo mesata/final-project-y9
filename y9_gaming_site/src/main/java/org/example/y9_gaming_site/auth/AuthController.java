@@ -32,7 +32,7 @@ public class AuthController {
                         HttpSession session, HttpServletRequest httpRequest) {
 
         try {
-            User user = authService.login(
+            String token = authService.login(
                     request.getEmail(),
                     request.getPassword()
             );
@@ -48,6 +48,7 @@ public class AuthController {
             );
             session.setAttribute("userId", user.getId());
             session.setAttribute("username", user.getUsername());
+            session.setAttribute("token", token);
             return "ok";
         } catch (Exception e) {
             return "error:" + e.getMessage();

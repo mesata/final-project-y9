@@ -2,10 +2,13 @@ package org.example.y9_gaming_site;
 
 
 import junit.framework.TestCase;
+import org.example.y9_gaming_site.security.ContentModerator;
 import org.example.y9_gaming_site.user.User;
 import org.example.y9_gaming_site.user.UserService;
 import org.example.y9_gaming_site.user.UserRepository;
 import org.mockito.Mockito;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
 import java.util.Optional;
 
 
@@ -18,13 +21,18 @@ public class UserRegisterTests extends TestCase {
     protected void setUp() throws Exception {
         super.setUp();
         mockRepository = Mockito.mock(UserRepository.class);
-        userService = new UserService(mockRepository);
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        userService = new UserService(mockRepository, encoder);
         validUser = new User();
         validUser.setUsername("mesatia");
         validUser.setEmail("mesatia@gmail.com");
-        validUser.setPassword("mesatiaMagaria123");
+        validUser.setPassword("mesatiaMagaria123!");
     }
 
+    public void test0(){
+        validUser.setId(4L);
+        assertTrue(validUser.getId()==4L);
+    }
 
     public void test1() throws Exception {
         Mockito.when(mockRepository.findByUsername("mesatia")).thenReturn(Optional.empty());
@@ -51,7 +59,7 @@ public class UserRegisterTests extends TestCase {
         Mockito.when(mockRepository.findByUsername("mesatia")).thenReturn(Optional.of(existingUser));
         User newUser = new User();
         newUser.setUsername("mesatia");
-        newUser.setPassword("laLalaLa1234");
+        newUser.setPassword("laLalaLa1234#");
         newUser.setEmail("mesat23@freeuni.edu.ge");
         try {
             userService.addNewUser(newUser);
@@ -69,7 +77,7 @@ public class UserRegisterTests extends TestCase {
         Mockito.when(mockRepository.findByUsername("mesatia")).thenReturn(Optional.of(existingUser));
         User newUser = new User();
         newUser.setUsername("mesatia");
-        newUser.setPassword("laLalaLa1234");
+        newUser.setPassword("laLalaLa1234#");
         newUser.setEmail("test@freeuni.edu.ge");
         try {
             userService.addNewUser(newUser);
@@ -91,5 +99,53 @@ public class UserRegisterTests extends TestCase {
             }
         }
     }
+
+    public void test5() throws Exception {
+        Mockito.when(mockRepository.findByUsername("uniqueUser")).thenReturn(Optional.empty());
+        Mockito.when(mockRepository.save(Mockito.any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        User user = new User();
+        user.setUsername("coolerMesatia");
+        user.setEmail("meeesaaatiaaaa@gmail.com");
+        user.setPassword("dzalianMagariParoli123!");
+        User savedUser = userService.addNewUser(user);
+        assertNotNull(savedUser);
+        assertFalse(savedUser.getPassword().equals("dzalianMagariParoli123!"));
+        assertTrue(savedUser.getPassword().startsWith("$2a$"));
+    }
+
+    public void test6() {
+        String testUser = "mesatia";
+        String token = org.example.y9_gaming_site.security.TokenUtil.generateToken(testUser);
+        assertNotNull("Token should not be null", token);
+        assertTrue("Token should contain a dot separator", token.contains("."));
+        String extractedUser = org.example.y9_gaming_site.security.TokenUtil.validateTokenAndGetUsername(token);
+        assertEquals("Extracted username should match the original", testUser, extractedUser);
+        String tamperedToken = token + "fakeBytes";
+        String invalidUser = org.example.y9_gaming_site.security.TokenUtil.validateTokenAndGetUsername(tamperedToken);
+        assertNull("A tampered token must return null user authentication", invalidUser);
+    }
+
+    public void test7(){
+        assertFalse(ContentModerator.isFlagged("mesatia"));
+        assertFalse(ContentModerator.isFlagged("pixelart_gamer"));
+    }
+
+
+    public void test8(){
+        assertTrue(ContentModerator.isFlagged("admin"));
+        assertTrue(ContentModerator.isFlagged("h4ck"));
+    }
+
+
+    public void test9(){
+        assertTrue(ContentModerator.isFlagged("h4ck"));
+        assertTrue(ContentModerator.isFlagged("xX_h4ck_Xx"));
+    }
+
+    public void test10(){
+        assertTrue(ContentModerator.isFlagged("hhhaaaaccckkkkkkk"));
+        assertTrue(ContentModerator.isFlagged("adm||nnnnnnnnn"));
+    }
+
 }
 
