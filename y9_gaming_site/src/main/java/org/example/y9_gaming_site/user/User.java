@@ -1,6 +1,5 @@
 package org.example.y9_gaming_site.user;
 
-import org.example.y9_gaming_site.model.Achievements;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -25,20 +24,19 @@ public class User {
 
     private int age;
 
+    private boolean isBanned;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role = Role.USER;
 
-    @ManyToMany
-    @JoinTable(
-            name = "user_achievements",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "achievement_id")
-    )
-    private List<Achievements> achievements;
+
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public boolean getBanned(){return isBanned;}
+    public void setBanned(boolean isBanned){this.isBanned = isBanned;}
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
@@ -58,6 +56,4 @@ public class User {
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
 
-    public List<Achievements> getAchievements() { return achievements; }
-    public void setAchievements(List<Achievements> achievements) { this.achievements = achievements; }
 }
