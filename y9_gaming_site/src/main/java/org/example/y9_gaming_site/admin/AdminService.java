@@ -13,26 +13,19 @@ public class AdminService {
     private final UserRepository userRepository;
     private final AnnouncementRepository announcementRepository;
     private final ChallengeRepository challengeRepository;
-    private final BannedUserRepository bannedUserRepository;
 
     public AdminService(UserRepository userRepository,
                         AnnouncementRepository announcementRepository,
-                        ChallengeRepository challengeRepository,
-                        BannedUserRepository bannedUserRepository) {
+                        ChallengeRepository challengeRepository) {
         this.userRepository = userRepository;
         this.announcementRepository = announcementRepository;
         this.challengeRepository = challengeRepository;
-        this.bannedUserRepository = bannedUserRepository;
 
     }
 
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
-    }
-
-    public List<BannedUser> getAllBannedUsers() {
-        return bannedUserRepository.findAll();
     }
 
     public void deleteUser(Long id) {
@@ -49,32 +42,17 @@ public class AdminService {
     public void banUser(Long id, String reason) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        BannedUser bannedUser = new BannedUser();
-        bannedUser.setReason(reason);
-        bannedUser.setAge(user.getAge());
-        bannedUser.setId(user.getId());
-        bannedUser.setEmail(user.getEmail());
-        bannedUser.setRole(user.getRole());
-        bannedUser.setPassword(user.getPassword());
-        bannedUser.setUsername(user.getUsername());
-        bannedUser.setSalt(user.getSalt());
-        bannedUserRepository.save(bannedUser);
-        userRepository.deleteById(id);
+        user.setBanned(true);
+        userRepository.save(user);
     }
 
 
     public void unbanUser(Long id) {
-        BannedUser bannedUser = bannedUserRepository.findById(id)
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Banned user not found"));
-        User user = new User();
-        user.setAge(bannedUser.getAge());
-        user.setId(bannedUser.getId());
-        user.setEmail(bannedUser.getEmail());
-        user.setRole(bannedUser.getRole());
-        user.setPassword(bannedUser.getPassword());
-        user.setUsername(bannedUser.getUsername());
-        user.setSalt(bannedUser.getSalt());
-        bannedUserRepository.delete(bannedUser);
+        user.setBanned(false);
+        userRepository.save(user);
+
     }
 
 
