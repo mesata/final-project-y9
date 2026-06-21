@@ -11,8 +11,8 @@ import java.io.IOException;
 public class ProfilePageController {
 
     @GetMapping("/profile/{id}")
-    public String profile(@PathVariable Long id, Model model) {
-        model.addAttribute("userId", id);
+    public String profile(@PathVariable Long idl) {
+      //  model.addAttribute("userId", id);
         return "profile";
     }
 }
