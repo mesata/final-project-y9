@@ -54,7 +54,7 @@ public class User {
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl;}
 
     public String getAvatarUrl(){return this.avatarUrl;}
-}
+
     public String getSalt() { return salt; }
     public void setSalt(String salt) { this.salt = salt; }
 
@@ -73,3 +73,4 @@ public class User {
         return Period.between(this.birthDate, LocalDate.now()).getYears();
     }
 }
+
