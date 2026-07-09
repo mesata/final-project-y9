@@ -3,10 +3,13 @@ let secondsElapsed = 0;
 let activePuzzleId = null;
 let currentSolution = "";
 
-//for hints and autocheck
 let hintsUsed = 0;
 const MAX_HINTS = 3;
 let autoCheckEnabled = false;
+
+let mistakesCommitted = 0;
+const MAX_MISTAKES = 3;
+let isGameOver = false;
 
 document.addEventListener("DOMContentLoaded", () => {
     determineInitialRouting();
@@ -19,7 +22,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-// Custom Non-blocking Toast Banner system
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return;
@@ -27,7 +29,6 @@ function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `custom-toast toast-${type}`;
 
-    // Assign matching status symbols contextually
     let prefix = "ℹ️ ";
     if (type === 'success') prefix = "🏆 ";
     if (type === 'error') prefix = "❌ ";
@@ -41,14 +42,23 @@ function showToast(message, type = 'info') {
     }, 4800);
 }
 
-// Setup dynamic checkbox state tracking for auto-check mode
 function initControlControls() {
     const autoCheckCheckbox = document.getElementById('auto-check-toggle');
     if (autoCheckCheckbox) {
+        autoCheckEnabled = autoCheckCheckbox.checked;
+        updateMistakesUIVisibility();
         autoCheckCheckbox.addEventListener('change', (e) => {
             autoCheckEnabled = e.target.checked;
-            runBoardAutoCheckScan(); // trigger color chnges
+            updateMistakesUIVisibility();
+            runBoardAutoCheckScan();
         });
+    }
+}
+
+function updateMistakesUIVisibility() {
+    const counterElement = document.getElementById('mistakes-counter');
+    if (counterElement) {
+        counterElement.style.display = autoCheckEnabled ? 'block' : 'none';
     }
 }
 
@@ -92,7 +102,11 @@ async function fetchPuzzleData(endpoint, titleLabelText) {
         currentSolution = puzzle.solution;
 
         hintsUsed = 0;
+        mistakesCommitted = 0;
+        isGameOver = false;
         updateHintButtonLabel();
+        updateMistakesUIVisibility();
+        updateMistakesUI();
 
         document.getElementById('mode-title').innerText = "SUDOKU";
         assembleGridElements(puzzle.definition);
@@ -119,19 +133,28 @@ function assembleGridElements(boardDefinition) {
         cell.dataset.index = i;
 
         cell.oninput = function() {
+            if (isGameOver) {
+                this.value = "";
+                return;
+            }
+
+            const previousValue = this.dataset.lastValidValue || "";
             this.value = this.value.replace(/[^1-9]/g, '');
 
-            // Core auto-check rules
+            if (this.value === previousValue) return;
+
             if (autoCheckEnabled) {
-                evaluateCellAccuracy(this);
+                evaluateCellAccuracyWithStrikes(this, previousValue);
             } else {
                 this.classList.remove('check-error', 'check-correct');
+                this.dataset.lastValidValue = this.value;
             }
 
             highlightMatchingNumbers(this.value);
         };
 
         cell.addEventListener('focus', () => {
+            if (isGameOver) return;
             highlightMatchingNumbers(cell.value);
             document.querySelectorAll('.sudoku-cell').forEach(c => c.classList.remove('focused-cell'));
             cell.classList.add('focused-cell');
@@ -139,6 +162,7 @@ function assembleGridElements(boardDefinition) {
 
         cell.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (isGameOver) return;
             highlightMatchingNumbers(cell.value);
         });
 
@@ -146,13 +170,15 @@ function assembleGridElements(boardDefinition) {
             cell.value = char;
             cell.readOnly = true;
             cell.classList.add('is-clue');
+            cell.dataset.lastValidValue = char;
+        } else {
+            cell.dataset.lastValidValue = "";
         }
 
         container.appendChild(cell);
     }
 }
 
-//inspects and matches css
 function evaluateCellAccuracy(cell) {
     const idx = parseInt(cell.dataset.index, 10);
     const val = cell.value.trim();
@@ -173,21 +199,97 @@ function evaluateCellAccuracy(cell) {
     }
 }
 
-//check
+function evaluateCellAccuracyWithStrikes(cell, previousValue) {
+    const idx = parseInt(cell.dataset.index, 10);
+    const val = cell.value.trim();
+
+    if (val === "") {
+        cell.classList.remove('check-error', 'check-correct');
+        cell.dataset.lastValidValue = "";
+        return;
+    }
+
+    if (!currentSolution || cell.classList.contains('is-clue')) return;
+
+    if (val === currentSolution[idx]) {
+        cell.classList.remove('check-error');
+        cell.classList.add('check-correct');
+        cell.dataset.lastValidValue = val;
+    } else {
+        cell.classList.remove('check-correct');
+        cell.classList.add('check-error');
+
+        mistakesCommitted++;
+        updateMistakesUI();
+        showToast(`Mistake detected! (${mistakesCommitted}/${MAX_MISTAKES} strikes used)`, 'error');
+        cell.dataset.lastValidValue = val;
+
+        if (mistakesCommitted >= MAX_MISTAKES) {
+            triggerSudokuLoss();
+        }
+    }
+}
+
+function updateMistakesUI() {
+    const counterElement = document.getElementById('mistakes-counter');
+    if (!counterElement) return;
+
+    if (isGameOver && mistakesCommitted >= MAX_MISTAKES) {
+        counterElement.innerText = "☠️ GAME OVER";
+        return;
+    }
+
+    let hearts = "";
+    for (let i = 0; i < MAX_MISTAKES; i++) {
+        hearts += (i < mistakesCommitted) ? "💔 " : "❤️ ";
+    }
+    counterElement.innerText = hearts.trim();
+}
+
+function triggerSudokuLoss() {
+    isGameOver = true;
+    clearInterval(timerInterval);
+
+    showToast("Too many mistakes! Game Over. Revealing the solution...", "error");
+
+    const cells = document.querySelectorAll('.sudoku-cell');
+    cells.forEach((cell, index) => {
+        cell.readOnly = true;
+        cell.blur();
+        if (!cell.classList.contains('is-clue')) {
+            cell.value = currentSolution[index];
+            cell.classList.remove('check-error');
+            cell.classList.add('check-correct');
+            cell.style.color = '#ff6b9d';
+        }
+    });
+
+    updateMistakesUI();
+}
+
 function runBoardAutoCheckScan() {
+    if (isGameOver) return;
+
     const cells = document.querySelectorAll('.sudoku-cell');
     cells.forEach(cell => {
         if (autoCheckEnabled) {
-            evaluateCellAccuracy(cell);
+            const idx = parseInt(cell.dataset.index, 10);
+            const val = cell.value.trim();
+            if (val !== "" && !cell.classList.contains('is-clue')) {
+                if (val === currentSolution[idx]) {
+                    cell.classList.add('check-correct');
+                } else {
+                    cell.classList.add('check-error');
+                }
+            }
         } else {
             cell.classList.remove('check-error', 'check-correct');
         }
     });
 }
 
-//3 hints
 function triggerBoardCellHint() {
-    if (!currentSolution) return;
+    if (isGameOver || !currentSolution) return;
     if (hintsUsed >= MAX_HINTS) {
         showToast("You have already exhausted your 3 available hints for this puzzle challenge session!", "warn");
         return;
@@ -195,7 +297,6 @@ function triggerBoardCellHint() {
 
     let targetCell = document.querySelector('.sudoku-cell.focused-cell');
 
-    // Fallback: If no cell is focused, locate the first empty or wrong layout tracking element matching solution array indices
     if (!targetCell || targetCell.classList.contains('is-clue') || targetCell.value === currentSolution[parseInt(targetCell.dataset.index, 10)]) {
         const cells = Array.from(document.querySelectorAll('.sudoku-cell'));
         targetCell = cells.find(cell => {
@@ -212,10 +313,12 @@ function triggerBoardCellHint() {
 
     const cellIdx = parseInt(targetCell.dataset.index, 10);
     targetCell.value = currentSolution[cellIdx];
+    targetCell.dataset.lastValidValue = currentSolution[cellIdx];
     targetCell.classList.add('is-hint-provided');
 
     if (autoCheckEnabled) {
-        evaluateCellAccuracy(targetCell);
+        targetCell.classList.remove('check-error');
+        targetCell.classList.add('check-correct');
     }
 
     hintsUsed++;
@@ -239,7 +342,7 @@ function highlightMatchingNumbers(targetValue) {
     clearAllHighlights();
 
     const valueToMatch = targetValue ? targetValue.trim() : "";
-    if (valueToMatch === "") return; // Skip calculation if cell is completely empty
+    if (valueToMatch === "") return;
 
     const cells = document.querySelectorAll('.sudoku-cell');
     cells.forEach(cell => {
@@ -268,6 +371,8 @@ function initTimerClock() {
 }
 
 async function submitSolutionCheck() {
+    if (isGameOver) return;
+
     const cells = document.querySelectorAll('.sudoku-cell');
     let submissionString = "";
     cells.forEach(cell => submissionString += (cell.value.trim() === "") ? "0" : cell.value.trim());
@@ -315,6 +420,7 @@ function giveUpAndReveal() {
     const confirmSurrender = confirm("Are you sure you want to give up and reveal the full solution?");
     if (!confirmSurrender) return;
 
+    isGameOver = true;
     clearInterval(timerInterval);
     const cells = document.querySelectorAll('.sudoku-cell');
 

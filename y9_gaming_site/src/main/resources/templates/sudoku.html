@@ -350,8 +350,16 @@
 <main class="sudoku-container">
     <div class="game-panel">
         <div class="game-header">
-            <h1 id="mode-title">SUDOKU</h1>
-            <div class="timer-display" id="sudoku-timer">00:00</div>
+            <div class="game-header">
+                <h1 id="mode-title">SUDOKU</h1>
+                <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 25px;">
+                    <div class="timer-display" id="sudoku-timer">00:00</div>
+                    <div class="timer-display" id="mistakes-counter" style="background: rgba(255, 107, 157, 0.15); border-color: rgba(255, 107, 157, 0.4); color: #ff6b9d;">
+                        ❤️ ❤️ ❤️
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <div id="sudoku-grid" class="sudoku-grid"></div>
