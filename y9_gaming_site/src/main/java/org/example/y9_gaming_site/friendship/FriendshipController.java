@@ -4,6 +4,7 @@ import org.example.y9_gaming_site.friendship.Friendship;
 import org.example.y9_gaming_site.friendship.AcceptDto;
 import org.example.y9_gaming_site.friendship.Friendship;
 import org.example.y9_gaming_site.friendship.FriendshipService;
+import org.example.y9_gaming_site.profile.UserProfileResponse;
 import org.example.y9_gaming_site.user.UserRepository;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,6 +41,14 @@ public class FriendshipController {
     @GetMapping("/status")
     public String getStatus(@RequestParam Long myId, @RequestParam Long otherId) {
         return service.getStatus(myId, otherId);
+    }
+
+    @GetMapping("/search")
+    public List<UserProfileResponse> searchFriends(@RequestParam Long myId, @RequestParam String query) {
+        if (query == null || query.trim().length() < 2) {
+            return List.of();
+        }
+        return service.searchFriends(myId, query.trim());
     }
 }
 

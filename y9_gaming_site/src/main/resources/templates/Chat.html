@@ -11,19 +11,21 @@
     </style>
 </head>
 <body>
-<nav th:replace="~{fragments/navbar :: navbar(active='chat')}"></nav>
+<nav th:replace="~{fragments/navbar :: navbar(active='home')}"></nav>
 <div th:replace="~{fragments/Notifications :: Notifications}"></div>
 
 <div class="chat-layout">
     <div class="chat-sidebar">
-        <div class="chat-panel">
+        <div class="chat-panel chat-panel--friend">
             <h2>💬 Chat with friends</h2>
             <p class="my-username-label">You are logged in as: <strong id="myUsernameLabel">...</strong></p>
 
 
             <label>Friend's username</label>
-            <input type="text" id="othersUsername">
-
+            <div class="user-search-wrapper">
+                <input type="text" id="othersUsername" autocomplete="off" oninput="onFriendSearch(this.value)">
+                <div id="friendSearchResults" class="chat-search-results" style="display:none;"></div>
+            </div>
 
             <button class="chat-btn" onclick="openFriendChat()">Open chat</button>
         </div>
