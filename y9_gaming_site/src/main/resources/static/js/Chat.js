@@ -65,8 +65,99 @@ async function openFriendChat(){
     if(!otherId){
         return;
     }
+    await openFriendChatWithId(otherId);
+}
+
+async function openFriendChatWithId(otherId){
+    if(!MyUserId){
+        alert("reload page");
+        return;
+    }
     await openRoomRequest(`/chat/open-private/${MyUserId}/${otherId}`, {method: "POST"});
 }
+
+let friendSearchTime = null;
+
+function onFriendSearch(value){
+    clearTimeout(friendSearchTime);
+
+    const result = document.getElementById("friendSearchResults");
+
+    if(value.trim().length < 2){
+        result.style.display = "none";
+        result.innerHTML = "";
+        return;
+    }
+
+    friendSearchTime = setTimeout(function (){
+        runFriendSearch(value.trim());
+    }, 300);
+}
+
+async function runFriendSearch(query){
+    const result = document.getElementById("friendSearchResults");
+    result.innerHTML = "";
+    result.style.display = "block";
+
+    if(!MyUserId){
+        result.innerHTML = "<div class='chat-search-empty'>reload page</div>";
+        return;
+    }
+
+    const token = localStorage.getItem("token");
+    let matches = [];
+    try {
+        const url = `${API_BASE}/friends/search?myId=${MyUserId}&query=` + encodeURIComponent(query);
+        const res = await fetch(url, {
+            headers: {"Authorization": "Bearer " + token}
+        });
+        if(res.ok){
+            matches = await res.json();
+        }
+    }catch (e){
+        console.log(e);
+    }
+
+    matches = matches.filter(u => u.username !== MyUsername);
+
+    if(matches.length === 0){
+        result.innerHTML = "<div class='chat-search-empty'>no friends match</div>";
+        return;
+    }
+
+    for(let i=0; i<matches.length; i++){
+        const user = matches[i];
+
+        const item = document.createElement("div");
+        item.className = "chat-search-item";
+        item.onclick = function (){
+            result.style.display = "none";
+            document.getElementById("othersUsername").value = user.username;
+            openFriendChatWithId(user.id);
+        };
+
+        const img = document.createElement("img");
+        img.src = user.avatarUrl || "/img/avatars/default.png";
+        img.onerror = function (){
+            this.src = "/img/avatars/default.png";
+        };
+
+        const name = document.createElement("span");
+        name.textContent = user.username;
+
+        item.appendChild(img);
+        item.appendChild(name);
+        result.appendChild(item);
+    }
+}
+
+document.addEventListener("click", function (e){
+    const wrapper = document.querySelector(".user-search-wrapper");
+    if(wrapper && !wrapper.contains(e.target)){
+        const result = document.getElementById("friendSearchResults");
+        if(result) result.style.display = "none";
+    }
+});
 
 async function createGroup(){
     if(!MyUserId){

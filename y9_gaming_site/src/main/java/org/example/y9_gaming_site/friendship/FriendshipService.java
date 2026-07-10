@@ -1,18 +1,24 @@
 package org.example.y9_gaming_site.friendship;
 
 import org.example.y9_gaming_site.notification.NotificationService;
+import org.example.y9_gaming_site.profile.UserProfileResponse;
+import org.example.y9_gaming_site.user.User;
+import org.example.y9_gaming_site.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class FriendshipService {
     private final FriendshipRepository friendshipRepository;
     private final NotificationService notificationService;
-    public FriendshipService(FriendshipRepository friendshipRepository, NotificationService notificationService) {
+    private final UserRepository userRepository;
+    public FriendshipService(FriendshipRepository friendshipRepository, NotificationService notificationService, UserRepository userRepository) {
         this.friendshipRepository = friendshipRepository;
         this.notificationService = notificationService;
+        this.userRepository = userRepository;
     }
 
     @Transactional
@@ -56,5 +62,29 @@ public class FriendshipService {
             return "FRIENDS";
         }
         return "PENDING";
+    }
+
+    public List<Long> getFriendIds(Long userId) {
+        List<Friendship> asSender = friendshipRepository.findBySenderIdAndStatus(userId, "ACCEPTED");
+        List<Friendship> asReceiver = friendshipRepository.findByReceiverIdAndStatus(userId, "ACCEPTED");
+
+        List<Long> friendIds = new ArrayList<>();
+        for (Friendship f : asSender) friendIds.add(f.getReceiverId());
+        for (Friendship f : asReceiver) friendIds.add(f.getSenderId());
+        return friendIds;
+    }
+
+    public List<UserProfileResponse> searchFriends(Long userId, String query) {
+        List<Long> friendIds = getFriendIds(userId);
+        if (friendIds.isEmpty()) return List.of();
+
+        String needle = query.toLowerCase();
+        List<UserProfileResponse> matches = new ArrayList<>();
+        for (User friend : userRepository.findAllById(friendIds)) {
+            if (friend.getUsername().toLowerCase().contains(needle)) {
+                matches.add(new UserProfileResponse(friend.getId(), friend.getUsername(), friend.getAvatarUrl(), friend.getRole().name()));
+            }
+        }
+        return matches;
     }
 }

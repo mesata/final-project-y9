@@ -9,5 +9,6 @@ import java.util.List;
 
 public interface FriendshipRepository extends JpaRepository<Friendship,Long>{
     List<Friendship> findByReceiverIdAndStatus(Long receiverId, String status);
+    List<Friendship> findBySenderIdAndStatus(Long senderId, String status);
     Friendship findBySenderIdAndReceiverId(Long senderId, Long receiverId);
 }
