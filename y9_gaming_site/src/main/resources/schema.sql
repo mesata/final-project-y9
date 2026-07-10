@@ -73,14 +73,7 @@ CREATE TABLE IF NOT EXISTS streaks (
                                        FOREIGN KEY (user_id) REFERENCES users(id)
     );
 
-CREATE TABLE IF NOT EXISTS leaderboard_scores (
-                                                  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                                  user_id BIGINT NOT NULL,
-                                                  game_type VARCHAR(50),
-    score INT DEFAULT 0,
-    played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-    );
+DROP TABLE IF EXISTS leaderboard_scores; -- gamerecord-ის  table-ს ვიყენებ და აღარ არის საჭირო
 
 
 
@@ -217,6 +210,16 @@ VALUES (
         '/images/games/joker.png',
         CURRENT_TIMESTAMP
        );
+
+INSERT IGNORE INTO games(title, description, max_players, icon_url, created_at)
+VALUES (
+           'SUDOKU',
+           'Classic number puzzle, solved solo against the clock',
+           1,
+           '/images/games/sudoku.png',
+           CURRENT_TIMESTAMP
+       );
+
 
 CREATE TABLE IF NOT EXISTS joker_sessions (
                                               id BIGINT AUTO_INCREMENT PRIMARY KEY,

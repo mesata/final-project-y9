@@ -1,36 +1,36 @@
 package org.example.y9_gaming_site.leaderboard;
 
-import org.springframework.web.bind.annotation.*;
+import org.example.y9_gaming_site.gameRecord.GameRecordService;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDateTime;
 import java.util.List;
-import org.springframework.web.servlet.ModelAndView;
 
 @RestController
 public class LeaderboardController {
-    private final LeaderboardService service;
 
-    public LeaderboardController(LeaderboardService service){
-        this.service=service;
+    private static final int TOP_N = 10;
+
+    private final GameRecordService gameRecordService;
+
+    public LeaderboardController(GameRecordService gameRecordService) {
+        this.gameRecordService = gameRecordService;
     }
 
-    @GetMapping("/leaderboard/{gameName}")
-    public List<LeaderboardScore> getTopScored(@PathVariable String gameName){
-        return service.getTopScored(gameName);
+    // top 10 all time for game
+    @GetMapping("/api/leaderboard/{gameName}")
+    public List<LeaderboardEntryDto> getTopScored(@PathVariable String gameName) {
+        return gameRecordService.findLeaderboard(gameName.toUpperCase(), null, TOP_N)
+                .stream().map(LeaderboardEntryDto::from).toList();
     }
 
-    @GetMapping("/leaderboard/{gameName}/today")
-    public List<LeaderboardScore> getTopScoresToday(@PathVariable String gameName) {
-        return service.getTopScoresLast24Hours(gameName);
+    // top 10 from last 24 hours for game
+    @GetMapping("/api/leaderboard/{gameName}/today")
+    public List<LeaderboardEntryDto> getTopScoresToday(@PathVariable String gameName) {
+        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        return gameRecordService.findLeaderboardSince(gameName.toUpperCase(), since, TOP_N)
+                .stream().map(LeaderboardEntryDto::from).toList();
     }
-
-    @GetMapping("/leaderboard/{gameName}/user/{userId}")
-    public List<LeaderboardScore> getUserHistory(@PathVariable String gameName,
-                                                 @PathVariable Long userId) {
-        return service.getUserHistory(userId, gameName);
-    }
-
-    @GetMapping("/leaderboard")
-    public ModelAndView leaderboardPage() {
-        return new ModelAndView("leaderboard");
-    }
-
 }

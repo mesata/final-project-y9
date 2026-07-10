@@ -35,6 +35,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/**").authenticated()
                         .requestMatchers("/api/games/**").authenticated()
                         .requestMatchers("/leaderboard/**", "/leaderboard.html").authenticated()
+                        .requestMatchers("/api/leaderboard/**").authenticated()
                         .requestMatchers("/achievements/**").authenticated()
                         .requestMatchers("/streak/**").authenticated()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
