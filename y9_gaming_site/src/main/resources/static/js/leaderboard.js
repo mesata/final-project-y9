@@ -28,9 +28,9 @@ async function loadLeaderboard() {
     //loading.style.display = 'block';
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#ccc; padding:20px;">Synchronizing database rows...</td></tr>`;
 
-    let url = `/leaderboard/${currentGame}`;
+    let url = `/api/leaderboard/${currentGame}`;
     if (currentFilter === 'today') {
-        url = `/leaderboard/${currentGame}/today`;
+        url = `/api/leaderboard/${currentGame}/today`;
     }
 
     try {
@@ -67,7 +67,7 @@ async function loadLeaderboard() {
             row.innerHTML = `
                 <td class="rank">${getRankDisplay(index)}</td>
                 <td class="player-name">${playerName}</td>
-                <td class="score">${entry.score.toLocaleString()} pts</td>
+                <td class="score">${formatScore(entry.score)}</td>
                 <td class="date">${formatDate(entry.playedAt)}</td>
             `;
             tbody.appendChild(row);
@@ -102,6 +102,19 @@ function getRankClass(index) {
 function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function formatScore(score) {
+    if (currentGame === 'Wordle') {
+        return score === 1 ? '1 guess' : `${score} guesses`;
+    }
+    if (currentGame === 'Sudoku') {
+        const totalSeconds = Math.round(score);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+    return `${score.toLocaleString()} pts`;
 }
 
 async function loadUserProfile() {

@@ -4,6 +4,7 @@ package org.example.y9_gaming_site.gameRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -19,4 +20,6 @@ public interface GameRecordRepository extends JpaRepository<GameRecord, Long> {
     long countByUserIdAndGameId(Long userId, Long gameId);
 
     List<GameRecord> findByUserIdAndGameIdOrderByRecordedAtDesc(Long userId, Long gameId);
+
+    List<GameRecord> findByGameIdAndRecordedAtAfter(Long gameId, LocalDateTime since);
 }

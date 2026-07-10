@@ -6,6 +6,8 @@ import org.example.y9_gaming_site.user.User;
 import org.example.y9_gaming_site.user.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -69,6 +71,17 @@ public class GameRecordService {
             candidates = gameRecordRepository.findByGameIdAndContextId(game.getId(), contextId);
         }
 
+        return sortedByEvaluator(candidates, gameKey, limit);
+    }
+
+    // same as findLeaderboard but only counting records from limit
+    public List<GameRecord> findLeaderboardSince(String gameKey, LocalDateTime since, int limit) {
+        Game game = gameRepository.findByTitle(gameKey).orElseThrow(() -> new RuntimeException("No game found"));
+        List<GameRecord> candidates = gameRecordRepository.findByGameIdAndRecordedAtAfter(game.getId(), since);
+        return sortedByEvaluator(candidates, gameKey, limit);
+    }
+
+    private List<GameRecord> sortedByEvaluator(List<GameRecord> candidates, String gameKey, int limit) {
         GameResultEvaluator evaluator = gameResultEvaluatorRegistry.resolve(gameKey);
         Comparator<GameRecord> comparator = (a, b) -> {
             if (evaluator.isBetter(a.getValue(), b.getValue())) return -1;
@@ -76,9 +89,16 @@ public class GameRecordService {
             return 0;
         };
 
-        return candidates.stream().sorted(comparator).limit(limit).collect(Collectors.toList());
-    }
+        Collection<GameRecord> bestPerUser = candidates.stream()
+                .collect(Collectors.toMap(
+                        record -> record.getUser().getId(),
+                        record -> record,
+                        (a, b) -> comparator.compare(a, b) <= 0 ? a : b
+                ))
+                .values();
 
+        return bestPerUser.stream().sorted(comparator).limit(limit).collect(Collectors.toList());
+    }
     public long countRecords(Long userId, String gameKey) {
         Game game = gameRepository.findByTitle(gameKey).orElseThrow(() -> new RuntimeException("No game found"));
         return gameRecordRepository.countByUserIdAndGameId(userId, game.getId());
